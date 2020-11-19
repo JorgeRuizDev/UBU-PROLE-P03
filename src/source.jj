@@ -1,0 +1,55 @@
+options {
+    STATIC=false;
+	DEBUG_PARSER=false;
+}
+
+PARSER_BEGIN(Compiler)
+
+/**
+ * Main Class
+ *
+ * @author <a href="mailto:jrg1011@alu.ubu.es">Jorge Ruiz Gómez</a>
+ */
+public class Compiler {
+    /**
+     * Main method.
+     *
+     * @param args filename to parse or none. 
+     */
+    public static void main(String [] args) {
+        try {
+			final Compiler compiler;
+
+			if (args.length < 1)
+            	compiler = new Compiler(System.in);
+			else
+				compiler = new Compiler(new java.io.FileInputStream(args[0]));
+
+			compiler.Run();
+        } catch (java.io.FileNotFoundException ex) {
+            System.out.println("File not found or invalid (" + args[0] + ")");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.err.println("Something went terribly wrong!");
+        }
+    }
+}
+
+PARSER_END(Compiler)
+
+void Run(): {System.out.println("HOLA");} {
+}
+
+// Token Def:
+TOKEN : {
+    <#DIG: ["0"-"9"]>
+|   <#CHAR: ["a"-"z", "A"-"Z"]>
+}
+
+/**
+* Skip Tokens
+*/
+<*> SKIP: {
+    <SPACES: ["\n", "\r", "\t", " "]>
+|   <COMMENT: "**" (~["\n", "\r"])*>
+}
