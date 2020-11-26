@@ -33,17 +33,50 @@ public class Compiler {
             System.err.println("Something went terribly wrong!");
         }
     }
+
+    public static int label_count = 0;
+
+    public static int get_current_label(){
+        return label_count;
+    }
+
+    public static int get_next_label(){
+        return label_count++;
+    }
+    public static void print(CharSequence s){
+        System.out.println(s);
+    }
+
 }
 
 PARSER_END(Compiler)
 
-void Run(): {System.out.println("HOLA");} {
-}
-
-// Token Def:
+/**
+* Token Definition
+*/
 TOKEN : {
     <#DIG: ["0"-"9"]>
 |   <#CHAR: ["a"-"z", "A"-"Z"]>
+|   <NUM: (<DIG>)+>
+|   <IF: "IF">
+|   <ELSE: "ELSE">
+|   <ENDIF: "END-IF">
+|   <WHEN: "WHEN">
+|   <COMPUTE: "COMPUTE">
+|   <MOVE: "MOVE">
+|   <EVALUATE: "EVALUATE">
+|   <ENDEVAL: "END-EVALUATE">
+|   <PERFORM: "PERFORM">
+|   <ENDPERF: "END-PERFORM">
+|   <UNTIL: "UNTIL">
+|   <DISPLAY: "DISPLAY">
+|   <TO: "TO">
+|   <EQUALS: "=">
+|   <ADD: "+">
+|   <SUB: "-">
+|   <MULT: "*">
+|   <DIV: "/">
+|   <ID: <CHAR>(<DIG> | <CHAR>)*>
 }
 
 /**
@@ -52,4 +85,118 @@ TOKEN : {
 <*> SKIP: {
     <SPACES: ["\n", "\r", "\t", " "]>
 |   <COMMENT: "**" (~["\n", "\r"])*>
+}
+
+void Run(): {} {
+    Sentences()
+    <EOF>
+}
+
+void Sentences(): {}{
+    (Sent())+
+}
+
+void Sent():{}{
+     Assig()
+   | Proc()
+}
+
+void Assig():
+    {   Token izq = null;
+        Token val = null;
+        Token der = null;
+
+    }{
+        <COMPUTE> izq=<ID>{System.out.println("\tvalori " + izq);} <EQUALS> Arithexp() {System.out.println("\tasigna");}
+
+    |   <MOVE> (val=<NUM> | der=<ID> ) <TO> izq=<ID> {
+                                                    System.out.println("\tvalori " + izq);
+                                                    if (der != null)
+                                                        System.out.println("\tvalord " + der);
+                                                    else
+                                                        System.out.println("\tmete "+ val);
+                                                    System.out.println("\tasigna");}
+
+}
+
+void Proc():{
+        int perform_label = -1;
+        int perform_end_label = -1;
+
+        int else_label = -1;
+    }{
+        <IF> Arithexp() {else_label = get_next_label();}
+        // if false, jump to else.
+        {System.out.println("\tsifalsovea LBL" + else_label);}
+         // IF:
+         Sentences()
+         // ELSE:
+         {System.out.println("LBL"+else_label);}
+         Elseopt()
+         {System.out.println("LBL" + else_label);}
+
+
+    |   <EVALUATE> <ID> (WhenClause())+ <ENDEVAL>
+
+    |   <PERFORM>{  perform_label = get_next_label();
+                    perform_end_label = get_next_label();
+                    System.out.println("LBL" + perform_label);}
+
+        <UNTIL>
+        Arithexp() {System.out.println("\tsiciertovea LBL" + perform_end_label);}
+        Sentences()
+        <ENDPERF>  {System.out.println("\tvea LBL" + perform_label);
+                    System.out.println("LBL" + perform_end_label);}
+
+    |   <DISPLAY> Arithexp() {System.out.println("\tprint");}
+
+}
+
+void Elseopt():{
+
+ }{
+        <ELSE> Sentences() <ENDIF>
+    |   <ENDIF>
+}
+
+void WhenClause(): {}{
+    <WHEN> Arithexp() Sentences()
+}
+
+void Arithexp(): {}{
+    Multexp() ArithexpP()
+}
+
+void ArithexpP():{}{
+    (
+        <ADD> Multexp() ArithexpP() {System.out.println("\tadd");}
+    |   <SUB> Multexp() ArithexpP() {System.out.println("\tsub");}
+    )?
+}
+
+void Multexp(): {
+    Token value;
+ }{
+    Value() MultexpP()
+}
+
+void MultexpP(): {}{
+    (
+        <MULT> Value() MultexpP() {System.out.println("\tmul");}
+    |   <DIV>  Value() MultexpP() {System.out.println("\tdiv");}
+    )?
+}
+/**
+* Recognizes:
+* - An INT
+* - A String that starts with a letter
+* - An arithmetic expresion.
+*/
+void Value():{
+    Token val;
+    }{
+      val=<NUM> {System.out.println("\tmete " + val);}
+    | val=<ID>  {System.out.println("\tvarlord " + val);}
+    | "(" Arithexp() ")"
+
 }

@@ -1,0 +1,13 @@
+A -> A a | b
+arithexp -> multexp artihexpP
+
+ArithexpP -> '+' multexp ArithexpP | '-' Multexp arithexpP | Epsilon
+
+
+
+
+
+
+Setences -> sentences sent | sent
+
+En javaCC: (sent)+

@@ -45,7 +45,7 @@ Ante una entrada como:
 
 MOVE 8 TO a           ** asignación a <- 8
 MOVE 3 TO b           ** asignación b <- 3
-
+** Comentario
 PERFORM UNTIL a       ** mientras a sea distinto que 0 seguir el bucle
     COMPUTE a = a - 1 ** decrementar a--
 	DISPLAY a         ** imprimir el valor de a
@@ -75,6 +75,7 @@ LBL0
 	valord a
 	mete 1
 	sub
+**  test comentario
 	asigna
 	valord a
 	print

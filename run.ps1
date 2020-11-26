@@ -16,17 +16,28 @@ if(-NOT $?){
 	Write-Host "JAVACC Failed" -BackgroundColor Red
 	exit_me
 }
+Write-Host "JAVACC OK" -ForegroundColor Blue
 
 # Compile
 
 javac *.java
 
 if(-NOT $?){
-	Write-Host "Compilation Process Failed" -BackgroundColor Red
+	Write-Host "Compilation Process Failed" -ForegroundColor Red
 	exit_me
 }
+Write-Host "COMPILE OK" -ForegroundColor Blue
 
 Set-Location .\..
 
+# Generate JJDOC HTML:
+jjdoc .\src\source.jj
+
 # Run
-java -cp .\src Compiler $args[0]
+if ($args.length -lt 1){
+    java -cp .\src Compiler
+}
+else{
+
+    java -cp .\src Compiler .\input_files\$args
+}
