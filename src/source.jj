@@ -10,6 +10,7 @@ PARSER_BEGIN(Compiler)
  *
  * @author <a href="mailto:jrg1011@alu.ubu.es">Jorge Ruiz Gómez</a>
  */
+
 public class Compiler {
     /**
      * Main method.
@@ -27,24 +28,32 @@ public class Compiler {
 
 			compiler.Run();
         } catch (java.io.FileNotFoundException ex) {
-            System.out.println("File not found or invalid (" + args[0] + ")");
+            out("File not found or invalid (" + args[0] + ")");
         } catch (Exception ex) {
             ex.printStackTrace();
             System.err.println("Something went terribly wrong!");
         }
     }
 
+    /*
+    * Current Label Value
+    */
     public static int label_count = 0;
 
-    public static int get_current_label(){
-        return label_count;
-    }
-
+    /**
+    *   Method that returns the next available label.
+    */
     public static int get_next_label(){
         return label_count++;
     }
-    public static void print(CharSequence s){
+
+    /**
+    * Method that displays/outs the compiler output.
+    *
+    */
+    public static void out(CharSequence s){
         System.out.println(s);
+        //file.write(s);
     }
 
 }
@@ -87,106 +96,216 @@ TOKEN : {
 |   <COMMENT: "**" (~["\n", "\r"])*>
 }
 
+/**
+* Axiom
+*/
 void Run(): {} {
     Sentences()
-    <EOF>
+    <EOF>   // Optional
 }
 
+/**
+* Sentences Terminal
+*/
 void Sentences(): {}{
     (Sent())+
 }
 
+/**
+* Sentences'
+*/
 void Sent():{}{
      Assig()
    | Proc()
 }
 
-void Assig():
-    {   Token izq = null;
+/**
+* Assign Operators
+*/
+void Assig():{
+
+        /**
+        * Left stack operator (ID)
+        */
+        Token left = null;
+
+        /**
+        * Right Stack operator. (ID)
+        */
+        Token right = null;
+
+        /**
+         * Value. (NUM)
+         */
         Token val = null;
-        Token der = null;
 
     }{
-        <COMPUTE> izq=<ID>{System.out.println("\tvalori " + izq);} <EQUALS> Arithexp() {System.out.println("\tasigna");}
+        /*
+            COMPUTE
+         */
+        <COMPUTE>
+        left=<ID>
+        {    out("\tvalori " + left);}
+        <EQUALS>
+        Arithexp()
+        {    out("\tasigna");}
 
-    |   <MOVE> (val=<NUM> | der=<ID> ) <TO> izq=<ID> {
-                                                    System.out.println("\tvalori " + izq);
-                                                    if (der != null)
-                                                        System.out.println("\tvalord " + der);
-                                                    else
-                                                        System.out.println("\tmete "+ val);
-                                                    System.out.println("\tasigna");}
+        /*
+             MOVE
+        */
+    |   <MOVE>
+        (val=<NUM> | right=<ID> )
+        <TO> left=<ID>
+        {
+            out("\tvalori " + left);
+            if (right != null) // Two vars  -> a = b
+                out("\tvalord " + right);
+            else               // Num to var -> a = 5
+                out("\tmete "+ val);
 
+            out("\tasigna");
+        }
 }
-
+/**
+* Statments
+*/
 void Proc():{
+        // Perfom Labels
         int perform_label = -1;
         int perform_end_label = -1;
 
+        // If/else label
         int else_label = -1;
+        int endif_label = -1;
+
+        // EVALUATE
+        Token evaluate_id = null;
+        int end_evaluate_label = -1;
     }{
-        <IF> Arithexp() {else_label = get_next_label();}
-        // if false, jump to else.
-        {System.out.println("\tsifalsovea LBL" + else_label);}
-         // IF:
+
+        /*
+            IF / ELSE / ENDIF
+         */
+         <IF> Arithexp() {else_label = get_next_label(); endif_label = get_next_label();}
+            // if false, jump to else.
+         {    out("\tsifalsovea LBL" + else_label);}
          Sentences()
+            // End of statement - Jump to endif
+         {    out("\tvea LBL" + endif_label);}
          // ELSE:
-         {System.out.println("LBL"+else_label);}
+         {    out("LBL"+ else_label);}
          Elseopt()
-         {System.out.println("LBL" + else_label);}
+         {
+            out("LBL" + endif_label);
+         }
 
+    /*
+        EVALUATE:
+     */
+    |   <EVALUATE>
+        evaluate_id=<ID>
+            {end_evaluate_label = get_next_label();}
 
-    |   <EVALUATE> <ID> (WhenClause())+ <ENDEVAL>
+        (WhenClause(evaluate_id.image, end_evaluate_label))+
 
-    |   <PERFORM>{  perform_label = get_next_label();
-                    perform_end_label = get_next_label();
-                    System.out.println("LBL" + perform_label);}
+        <ENDEVAL>
+        //End of the Eval:
+        {    out("LBL" + end_evaluate_label);}
+
+    /*
+        PERFORM:
+     */
+    |   <PERFORM>
+        {
+            perform_label = get_next_label();
+            perform_end_label = get_next_label();
+            out("LBL" + perform_label);
+        }
 
         <UNTIL>
-        Arithexp() {System.out.println("\tsiciertovea LBL" + perform_end_label);}
+        Arithexp()
+        {    out("\tsiciertovea LBL" + perform_end_label);}
         Sentences()
-        <ENDPERF>  {System.out.println("\tvea LBL" + perform_label);
-                    System.out.println("LBL" + perform_end_label);}
+        <ENDPERF>
+        {
+            out("\tvea LBL" + perform_label);
+            out("LBL" + perform_end_label);
+        }
 
-    |   <DISPLAY> Arithexp() {System.out.println("\tprint");}
+    |   <DISPLAY> Arithexp()
+        {    out("\tprint");}
 
 }
 
-void Elseopt():{
-
- }{
+/**
+* Else and End if
+*/
+void Elseopt():{}{
         <ELSE> Sentences() <ENDIF>
     |   <ENDIF>
 }
 
-void WhenClause(): {}{
-    <WHEN> Arithexp() Sentences()
+/**
+* When Clause (Evaluate sub-statement)
+* @Param id (String): The current ID that is being evaluated.
+* @Param end_label: The last statement.
+*/
+void WhenClause(String id, int end_label): {
+    int next_when_label = -1;
+ }{
+
+    {    out("\tvalord " + id);} // EVALUATE X
+    <WHEN> Arithexp()
+
+    { // Check if it's true.
+        next_when_label = get_next_label();
+        out("\tsub");
+        out("\tsifalsovea LBL" + next_when_label);
+    }
+     Sentences()
+    {
+    // Skip the rest when statements, jump to end-evaluate
+        out("\tvea LBL" + end_label); // if true, jump to the end of the EVALUATE statement.
+        out("LBL" + next_when_label);
+    }
 }
 
+/**
+* Arithmetic Expresion
+*/
 void Arithexp(): {}{
     Multexp() ArithexpP()
 }
 
+/**
+* Recursive Arithmetic Expresion
+*/
 void ArithexpP():{}{
     (
-        <ADD> Multexp() ArithexpP() {System.out.println("\tadd");}
-    |   <SUB> Multexp() ArithexpP() {System.out.println("\tsub");}
+        <ADD> Multexp() ArithexpP() {out("\tsum");}
+    |   <SUB> Multexp() ArithexpP() {out("\tsub");}
     )?
 }
 
-void Multexp(): {
-    Token value;
- }{
+/**
+* Arithmetic Expresion (Values and * or /)
+*/
+void Multexp():{}{
     Value() MultexpP()
 }
 
+/**
+* Multiplication Expresion (Recursive)
+*/
 void MultexpP(): {}{
     (
-        <MULT> Value() MultexpP() {System.out.println("\tmul");}
-    |   <DIV>  Value() MultexpP() {System.out.println("\tdiv");}
+        <MULT> Value() MultexpP() {out("\tmul");}
+    |   <DIV>  Value() MultexpP() {out("\tdiv");}
     )?
 }
+
 /**
+* A Value
 * Recognizes:
 * - An INT
 * - A String that starts with a letter
@@ -195,8 +314,8 @@ void MultexpP(): {}{
 void Value():{
     Token val;
     }{
-      val=<NUM> {System.out.println("\tmete " + val);}
-    | val=<ID>  {System.out.println("\tvarlord " + val);}
+      val=<NUM> {out("\tmete " + val);}
+    | val=<ID>  {out("\tvalord " + val);}
     | "(" Arithexp() ")"
 
 }

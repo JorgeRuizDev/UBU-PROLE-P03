@@ -35,9 +35,10 @@ jjdoc .\src\source.jj
 
 # Run
 if ($args.length -lt 1){
-    java -cp .\src Compiler
+    java -cp .\src compiler
 }
 else{
 
-    java -cp .\src Compiler .\input_files\$args
+    (java -cp .\src Compiler .\input_files\$args) | Tee-Object -file out.txt
+
 }
